@@ -75,26 +75,27 @@ free text. A resolver edge names a bare field and points at one record; a
 collection edge carries the parent id under a `<name>_ref` field and points at a
 list authority. The edges are:
 
-| From      | Field          | Edge to                  |
-| --------- | -------------- | ------------------------ |
-| `Place`   | `search_ref`   | `airbnb://search/<name>` |
-| `Listing` | `room`         | `airbnb://room/<id>`     |
-| `Listing` | `host`         | `airbnb://host/<id>`     |
-| `Room`    | `host_id`      | `airbnb://host/<id>`     |
-| `Room`    | `reviews_ref`  | `airbnb://reviews/<id>`  |
-| `Room`    | `calendar_ref` | `airbnb://calendar/<id>` |
-| `Review`  | `room`         | `airbnb://room/<id>`     |
-| `Review`  | `author_id`    | `airbnb://host/<id>`     |
-| `Day`     | `room`         | `airbnb://room/<id>`     |
-| `Host`    | `listings_ref` | `airbnb://listings/<id>` |
+| From      | Field             | Edge to                      |
+| --------- | ----------------- | ---------------------------- |
+| `Place`   | `search_ref`      | `airbnb://search/<name>`     |
+| `Place`   | `experiences_ref` | `airbnb://experiences/<name>` |
+| `Listing` | `room`            | `airbnb://room/<id>`         |
+| `Listing` | `host`            | `airbnb://host/<id>`         |
+| `Room`    | `host_id`         | `airbnb://host/<id>`         |
+| `Room`    | `reviews_ref`     | `airbnb://reviews/<id>`      |
+| `Room`    | `calendar_ref`    | `airbnb://calendar/<id>`     |
+| `Review`  | `room`            | `airbnb://room/<id>`         |
+| `Review`  | `author_id`       | `airbnb://host/<id>`         |
+| `Day`     | `room`            | `airbnb://room/<id>`         |
+| `Host`    | `listings_ref`    | `airbnb://listings/<id>`     |
 
-The edges close into one connected graph. A suggestion fans out into a stay
-search for the place; a search card walks straight through to its full room and
-its host; a room reaches its host, its reviews, and its calendar; a review
-reaches its listing and the reviewer's own profile; a host reaches the host's
-other listings. No node is left without an outward edge, so a crawl started
-anywhere reaches the rest of the reachable site. Starting from any node,
-`--follow` walks these edges:
+The edges close into one connected graph. A suggestion fans out into both a stay
+search and an experience search for the place; a search card walks straight
+through to its full room and its host; a room reaches its host, its reviews, and
+its calendar; a review reaches its listing and the reviewer's own profile; a host
+reaches the host's other listings. No node is left without an outward edge, so a
+crawl started anywhere reaches the rest of the reachable site. Starting from any
+node, `--follow` walks these edges:
 
 ```bash
 ant export airbnb://search/Lake%20Tahoe --follow 2 --to ./data  # each listing's room, then its host, reviews, and calendar

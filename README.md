@@ -142,10 +142,11 @@ of that exists without an account. A listing shows the title, the description, t
 icon highlights, the capacity and room breakdown, the sleeping arrangements, the
 amenities, the house rules with the check-in and checkout times, the area, the
 guest rating and its six category scores, the full photo gallery, and the host a
-visitor sees; a search card carries its photo carousel and any struck-through
-original price; a review carries the stay descriptor, the reviewer's photo, and a
-link to the reviewer's own profile; a host carries the response time. A field a
-page does not show is left empty rather than guessed.
+visitor sees with their public photo; a search card carries its photo carousel
+and any struck-through original price; a review carries the stay descriptor, the
+reviewer's photo, and a link to the reviewer's own profile; a host carries the
+response time and where they live. A field a page does not show is left empty
+rather than guessed.
 
 When something is genuinely missing the exit code says which, so a script can tell
 the cases apart:
@@ -256,14 +257,15 @@ ant url airbnb://room/<id>        # the live https URL
 ```
 
 Records carry explicit edges that close into one connected graph, so a host can
-breadth-first crawl it and write it to disk: a suggestion fans out into a search
-for the place, a search listing links to its full room and its host, a room links
-to its host, its reviews, and its calendar, a review links back to its listing and
-on to the reviewer's own profile, and a host links to the host's other listings.
-No node is left without an outward edge, so a crawl started anywhere reaches the
-rest of the reachable site. `ant export <uri> --follow N` walks those edges. See
-the [resource-URI guide](https://airbnb-cli.tamnd.com/guides/resource-uris/) for
-the full edge map.
+breadth-first crawl it and write it to disk: a suggestion fans out into a stay
+search and an experience search for the place, a search listing links to its full
+room and its host, a room links to its host, its reviews, and its calendar, a
+review links back to its listing and on to the reviewer's own profile, and a host
+links to the host's other listings. No node is left without an outward edge, so a
+crawl started anywhere reaches the rest of the reachable site. `ant export <uri>
+--follow N` walks those edges. See the
+[resource-URI guide](https://airbnb-cli.tamnd.com/guides/resource-uris/) for the
+full edge map.
 
 ## Development
 
