@@ -15,9 +15,6 @@ const BaseURL = "https://" + hostname
 // api/v2 JSON endpoints the search box uses. None of this needs a login; all of
 // it sits behind Airbnb's edge bot manager (see errors.go).
 const (
-	apiV3 = BaseURL + "/api/v3"
-	apiV2 = BaseURL + "/api/v2"
-
 	// defaultAPIKey is the long-standing public web client key Airbnb ships in
 	// its own pages. It is a public constant, not a secret; the client refreshes
 	// it from the homepage when reachable and it may be overridden with --api-key.
