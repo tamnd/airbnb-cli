@@ -224,8 +224,11 @@ func TestHostLinks(t *testing.T) {
 		t.Errorf("missing edge %q in %v", want, got)
 	}
 
-	// The entry edge: a suggestion fans out into a stay search for the place.
-	has(t, links(&Place{Name: "Lake Tahoe", SearchRef: "Lake Tahoe"}), "airbnb://search/Lake%20Tahoe")
+	// The entry edges: a suggestion fans out into both a stay search and an
+	// experience search for the place.
+	pl := links(&Place{Name: "Lake Tahoe", SearchRef: "Lake Tahoe", ExperiencesRef: "Lake Tahoe"})
+	has(t, pl, "airbnb://search/Lake%20Tahoe")
+	has(t, pl, "airbnb://experiences/Lake%20Tahoe")
 
 	// A search card walks straight through to its full room and its host.
 	l := &Listing{ID: "111", Room: "111", Host: "555"}

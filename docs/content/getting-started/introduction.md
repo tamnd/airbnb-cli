@@ -73,10 +73,11 @@ of that exists without an account. A listing shows the title, the description,
 the icon highlights, the capacity and room breakdown, the sleeping arrangements,
 the amenities, the house rules with the check-in and checkout times, the area,
 the guest rating and its six category scores, the full photo gallery, and the
-host a visitor sees; a search card carries its photo carousel and any
-struck-through original price; a review carries the stay descriptor, the
-reviewer's photo, and a link to the reviewer's own profile; a host carries the
-response time. A field a page does not show is left empty rather than guessed.
+host a visitor sees with their public photo; a search card carries its photo
+carousel and any struck-through original price; a review carries the stay
+descriptor, the reviewer's photo, and a link to the reviewer's own profile; a
+host carries the response time and where they live. A field a page does not show
+is left empty rather than guessed.
 
 A nightly price only exists for specific dates, so `room` and `search` leave the
 price empty unless you give `--checkin` and `--checkout` (with `--adults` and

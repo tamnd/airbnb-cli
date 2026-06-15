@@ -45,12 +45,13 @@ func (c *Client) Suggest(ctx context.Context, prefix string, limit int) ([]*Plac
 		seen[name] = true
 		clean := squish(name)
 		out = append(out, &Place{
-			Query:     prefix,
-			Name:      clean,
-			PlaceID:   t.Location.GooglePlaceID,
-			Lat:       t.Location.Lat,
-			Lng:       t.Location.Lng,
-			SearchRef: clean,
+			Query:          prefix,
+			Name:           clean,
+			PlaceID:        t.Location.GooglePlaceID,
+			Lat:            t.Location.Lat,
+			Lng:            t.Location.Lng,
+			SearchRef:      clean,
+			ExperiencesRef: clean,
 		})
 		if limit > 0 && len(out) >= limit {
 			break

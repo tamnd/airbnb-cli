@@ -22,6 +22,7 @@ type apiUser struct {
 	SmartName        string   `json:"smartName"`
 	IsSuperhost      bool     `json:"isSuperhost"`
 	CreatedAt        string   `json:"createdAt"`
+	Location         string   `json:"location"`
 	About            string   `json:"about"`
 	Languages        []string `json:"languages"`
 	ListingsCount    int      `json:"listingsCount"`
@@ -57,6 +58,7 @@ func (c *Client) GetHost(ctx context.Context, ref string) (*Host, error) {
 		Name:         squish(u.SmartName),
 		Superhost:    u.IsSuperhost,
 		Since:        u.CreatedAt,
+		Location:     squish(u.Location),
 		About:        squish(u.About),
 		ResponseRate: u.ResponseRate,
 		ResponseTime: squish(u.ResponseTime),

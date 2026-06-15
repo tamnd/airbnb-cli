@@ -101,6 +101,15 @@ type sectionBody struct {
 	IsSuperhost bool   `json:"isSuperhost"`
 	HostName    string `json:"hostName"`
 	HostID      string `json:"hostId"`
+	// MeetYourHostSection nests the host under cardData, where the public
+	// profile photo lives. The older HostProfileSection carries the name and id
+	// at the section top level, so both are read and the top level wins.
+	CardData *struct {
+		Name              string `json:"name"`
+		UserID            string `json:"userId"`
+		ProfilePictureURL string `json:"profilePictureUrl"`
+		IsSuperhost       bool   `json:"isSuperhost"`
+	} `json:"cardData"`
 }
 
 // eventData is the flat numeric blob the island logs alongside the sections.
@@ -194,7 +203,9 @@ func roomFromSections(sections []pdpSection, metadata json.RawMessage, id string
 		case "AmenitiesSection", "PhotoTourModalAmenitiesSection":
 			for _, g := range b.SeeAllAmenitiesGroups {
 				for _, a := range g.Amenities {
-					if a.Title != "" {
+					// The section also lists a "not included" group; only the
+					// available amenities belong on the listing.
+					if a.Title != "" && a.Available {
 						r.Amenities = append(r.Amenities, a.Title)
 					}
 				}
@@ -214,6 +225,20 @@ func roomFromSections(sections []pdpSection, metadata json.RawMessage, id string
 			}
 			if b.IsSuperhost {
 				r.Superhost = true
+			}
+			if cd := b.CardData; cd != nil {
+				if r.HostName == "" && cd.Name != "" {
+					r.HostName = squish(cd.Name)
+				}
+				if r.HostID == "" {
+					r.HostID = normalizeHostID(cd.UserID)
+				}
+				if cd.IsSuperhost {
+					r.Superhost = true
+				}
+				if r.HostImage == "" {
+					r.HostImage = cd.ProfilePictureURL
+				}
 			}
 		case "PoliciesSection", "PdpHouseRulesModalSection":
 			for _, hr := range b.HouseRules {

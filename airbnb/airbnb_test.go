@@ -101,9 +101,9 @@ const roomPage = `<html><head>
     {"sectionId":"HIGHLIGHTS","section":{"__typename":"PdpHighlightsSection","highlights":[{"title":"Self check-in","subtitle":"Check yourself in with the lockbox."},{"title":"Great location"}]}},
     {"sectionId":"SLEEPING","section":{"__typename":"SleepingArrangementSection","arrangementDetails":[{"title":"Bedroom 1","subtitle":"1 queen bed"},{"title":"Bedroom 2","subtitle":"2 single beds"}]}},
     {"sectionId":"LOCATION","section":{"__typename":"LocationSection","subtitle":"Tahoe Vista, California, United States"}},
-    {"sectionId":"AMENITIES","section":{"__typename":"AmenitiesSection","seeAllAmenitiesGroups":[{"amenities":[{"title":"Wifi","available":true},{"title":"Kitchen","available":true}]}]}},
+    {"sectionId":"AMENITIES","section":{"__typename":"AmenitiesSection","seeAllAmenitiesGroups":[{"amenities":[{"title":"Wifi","available":true},{"title":"Kitchen","available":true}]},{"amenities":[{"title":"Pool","available":false}]}]}},
     {"sectionId":"PHOTOS","section":{"__typename":"PhotoTourModalSection","mediaItems":[{"baseUrl":"https://img/1.jpg"},{"baseUrl":"https://img/2.jpg"}]}},
-    {"sectionId":"HOST","section":{"__typename":"HostProfileSection","hostName":"Jordan","hostId":"555","isSuperhost":true}},
+    {"sectionId":"HOST","section":{"__typename":"MeetYourHostSection","cardData":{"name":"Jordan","userId":"555","profilePictureUrl":"https://h/host.jpg","isSuperhost":true}}},
     {"sectionId":"POLICIES","section":{"__typename":"PoliciesSection","houseRules":[{"title":"Check-in after 4:00 PM"},{"title":"Checkout before 11:00 AM"},{"title":"No smoking"},{"title":"No parties"}]}}
   ],
   "metadata":{"loggingContext":{"eventDataLogging":{"listingLat":39.1,"listingLng":-120.1,"personCapacity":4,"accuracyRating":4.9,"checkinRating":5.0,"cleanlinessRating":4.8,"communicationRating":5.0,"locationRating":4.7,"valueRating":4.6,"guestSatisfactionOverall":4.85,"visibleReviewCount":120,"roomType":"Entire home","propertyType":"Cabin","isSuperhost":true,"hostId":"555"}}}
@@ -127,6 +127,7 @@ func TestGetRoom(t *testing.T) {
 	if r.Capacity != 4 || r.Bedrooms != 2 || r.Beds != 3 || r.Bathrooms != "1.5 baths" {
 		t.Errorf("overview = cap %d br %d beds %d bath %q", r.Capacity, r.Bedrooms, r.Beds, r.Bathrooms)
 	}
+	// The "not included" group (Pool, available:false) is left off the listing.
 	if len(r.Amenities) != 2 || r.Amenities[0] != "Wifi" {
 		t.Errorf("amenities = %v", r.Amenities)
 	}
@@ -144,6 +145,9 @@ func TestGetRoom(t *testing.T) {
 	}
 	if r.HostName != "Jordan" || r.HostID != "555" || !r.Superhost {
 		t.Errorf("host = %q / %q / %v", r.HostName, r.HostID, r.Superhost)
+	}
+	if r.HostImage != "https://h/host.jpg" {
+		t.Errorf("host image = %q", r.HostImage)
 	}
 	if len(r.HouseRules) != 4 || r.HouseRules[2] != "No smoking" {
 		t.Errorf("house rules = %v", r.HouseRules)
@@ -312,7 +316,7 @@ func TestCalendar(t *testing.T) {
 }
 
 const hostData = `{"presentation":{"userProfileContainer":{"userProfile":{
-  "id":"555","smartName":"Jordan","isSuperhost":true,"createdAt":"2015","about":"I love hosting.","languages":["English","Spanish"],"listingsCount":3,"reviewsCount":210,"responseRate":"100%","responseTime":"within an hour","identityVerified":true,"pictureUrl":"https://h/p.jpg"
+  "id":"555","smartName":"Jordan","isSuperhost":true,"createdAt":"2015","location":"Lives in Paris, France","about":"I love hosting.","languages":["English","Spanish"],"listingsCount":3,"reviewsCount":210,"responseRate":"100%","responseTime":"within an hour","identityVerified":true,"pictureUrl":"https://h/p.jpg"
 }}}}`
 
 func TestGetHost(t *testing.T) {
@@ -334,6 +338,9 @@ func TestGetHost(t *testing.T) {
 	}
 	if h.ResponseTime != "within an hour" {
 		t.Errorf("response time = %q", h.ResponseTime)
+	}
+	if h.Location != "Lives in Paris, France" {
+		t.Errorf("location = %q", h.Location)
 	}
 	// A host carries the edge to the host's own listings so a crawl expands.
 	if h.ListingsRef != "555" {
@@ -421,9 +428,13 @@ func TestSuggest(t *testing.T) {
 	if got[0].Lat != 48.8 || got[0].Lng != 2.3 {
 		t.Errorf("coords = %v, %v", got[0].Lat, got[0].Lng)
 	}
-	// A suggestion links into a stay search for the place, the crawl's entry edge.
+	// A suggestion links into both a stay search and an experience search for the
+	// place, the crawl's two entry edges.
 	if got[0].SearchRef != "Paris, France" {
 		t.Errorf("search edge = %q", got[0].SearchRef)
+	}
+	if got[0].ExperiencesRef != "Paris, France" {
+		t.Errorf("experiences edge = %q", got[0].ExperiencesRef)
 	}
 	if got[1].Name != "Paris, TX" {
 		t.Errorf("suggestion 1 = %+v", got[1])

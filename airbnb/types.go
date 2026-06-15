@@ -18,7 +18,8 @@ package airbnb
 // under a <name>_ref field and points at a list authority. Following all of them
 // closes the loop:
 //
-//	place(suggest) --search_ref--> search
+//	place(suggest) --search_ref------> search
+//	place(suggest) --experiences_ref-> experiences
 //	search --------> listing --room--> room
 //	                 listing --host--> host
 //	room ----host_id-----> host
@@ -28,8 +29,8 @@ package airbnb
 //	host ----listings_ref-> listings --> listing ...
 //
 // so suggest -> search -> every listing -> its room -> its host, reviews, and
-// calendar -> each reviewer's profile -> each host's other listings, with no
-// node left without an outward edge.
+// calendar -> each reviewer's profile -> each host's other listings, plus suggest
+// -> experiences for the same place, with no node left without an outward edge.
 
 // Listing is a summary card in a grid, emitted by search and host listings. Its
 // id is the room id, so Room carries the same value as the graph edge to the full
@@ -91,6 +92,7 @@ type Room struct {
 	Superhost      bool     `json:"superhost,omitempty"`
 	HostID         string   `json:"host_id,omitempty" table:"-" kit:"link,kind=airbnb/host"` // edge to the host
 	HostName       string   `json:"host_name,omitempty"`
+	HostImage      string   `json:"host_image,omitempty" table:"-"`    // the host's public profile photo
 	Images         []string `json:"images,omitempty" table:"-"`        // the photo gallery
 	Image          string   `json:"image,omitempty" table:",truncate"` // the first photo
 	URL            string   `json:"url"`
@@ -138,7 +140,8 @@ type Host struct {
 	ID           string   `json:"id" kit:"id"` // user id
 	Name         string   `json:"name,omitempty"`
 	Superhost    bool     `json:"superhost,omitempty"`
-	Since        string   `json:"since,omitempty"` // the "joined in <year>" text
+	Since        string   `json:"since,omitempty"`    // the "joined in <year>" text
+	Location     string   `json:"location,omitempty"` // the host's stated home, e.g. "Lives in Paris"
 	About        string   `json:"about,omitempty" table:",truncate" kit:"body"`
 	ResponseRate string   `json:"response_rate,omitempty"`
 	ResponseTime string   `json:"response_time,omitempty"` // "within an hour", ...
@@ -168,16 +171,18 @@ type Experience struct {
 }
 
 // Place is one location autocomplete suggestion, emitted by suggest. PlaceID is
-// the identifier search resolves a free-text place into, and SearchRef carries
-// the place name as the edge into a stay search, so a crawl can start from a
-// typed prefix and fan out into the listings it returns.
+// the identifier search resolves a free-text place into. SearchRef carries the
+// place name as the edge into a stay search and ExperiencesRef as the edge into
+// an experience search, so a crawl can start from a typed prefix and fan out into
+// both the stays and the experiences a place returns.
 type Place struct {
-	Query     string  `json:"query"`              // the prefix that was queried
-	Name      string  `json:"name" kit:"id"`      // the suggested place name
-	PlaceID   string  `json:"place_id,omitempty"` // the Google place id the search uses
-	Lat       float64 `json:"lat,omitempty"`
-	Lng       float64 `json:"lng,omitempty"`
-	SearchRef string  `json:"search_ref,omitempty" table:"-" kit:"link,kind=airbnb/search"` // edge into a stay search (= name)
+	Query          string  `json:"query"`              // the prefix that was queried
+	Name           string  `json:"name" kit:"id"`      // the suggested place name
+	PlaceID        string  `json:"place_id,omitempty"` // the Google place id the search uses
+	Lat            float64 `json:"lat,omitempty"`
+	Lng            float64 `json:"lng,omitempty"`
+	SearchRef      string  `json:"search_ref,omitempty" table:"-" kit:"link,kind=airbnb/search"`           // edge into a stay search (= name)
+	ExperiencesRef string  `json:"experiences_ref,omitempty" table:"-" kit:"link,kind=airbnb/experiences"` // edge into an experience search (= name)
 }
 
 // Ref is the result of `airbnb ref id`: the canonical (kind, id) a reference
