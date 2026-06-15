@@ -1,6 +1,6 @@
 title       = "airbnb"
 baseURL     = "https://airbnb-cli.tamnd.com/"
-description = "A command line for airbnb."
+description = "Read public Airbnb stays, listings, reviews, calendars, hosts, and experiences into structured records."
 contentDir  = "content"
 outputDir   = "public"
 theme       = "tago-doks"

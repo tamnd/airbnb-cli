@@ -1,28 +1,73 @@
 ---
 title: "Quick start"
-description: "Fetch your first record with airbnb."
+description: "Run your first airbnb commands and shape their output."
 weight: 30
 ---
 
-Once `airbnb` is on your `PATH`, fetch a page. The argument is the path
-of the page on airbnb.com (everything after the host), or a full URL:
+Once `airbnb` is on your `PATH`, complete a place name. `suggest` reads the
+location autocomplete endpoint (best-effort behind the edge):
 
 ```bash
-airbnb page <path>
+airbnb suggest paris -n 6 --fields name
 ```
 
-By default you get an aligned table. Ask for JSON when you want to pipe it:
+```
+╭──────────────────────────╮
+│ NAME                     │
+├──────────────────────────┤
+│ Paris, France            │
+│ Paris, TX                │
+│ Paris, Ontario, Canada   │
+│ Paris, KY                │
+│ Paris, Tennessee         │
+│ Parisian, ...            │
+╰──────────────────────────╯
+```
+
+Ask for JSON when you want to pipe it:
 
 ```bash
-$ airbnb page <path> -o json
+airbnb suggest paris -o json
+```
+
+```json
 [
   {
-    "id": "<path>",
-    "url": "https://airbnb.com/<path>",
-    "title": "<path>",
-    "body": "..."
+    "query": "paris",
+    "name": "Paris, France",
+    "place_id": "ChIJD7fiBh9u5kcRYJSMaMOCCwQ",
+    "lat": 48.8566,
+    "lng": 2.3522
   }
 ]
+```
+
+## The best-effort surfaces
+
+Every live surface sits behind Airbnb's edge bot manager and may exit 4 from a
+datacenter. See
+[what anonymous access reaches](/getting-started/introduction/#what-anonymous-access-reaches).
+
+```bash
+airbnb search "Lake Tahoe"           # stay search by place (best-effort)
+airbnb room 12345                    # one listing by id (best-effort)
+airbnb reviews 12345                 # a listing's reviews (best-effort)
+airbnb calendar 12345                # availability and nightly price (best-effort)
+airbnb host show 555                 # a host profile (best-effort)
+airbnb host listings 555             # the host's public listings (best-effort)
+airbnb experiences "Lake Tahoe"      # experience search (best-effort)
+```
+
+There is no API to fall back to, so a walled read exits 4 and names the only
+remedy: run from a residential or mobile network.
+
+## Prices need dates
+
+A nightly price only exists for specific dates, so `room` and `search` leave the
+price empty unless you give `--checkin` and `--checkout`:
+
+```bash
+airbnb room 12345 --checkin 2025-07-01 --checkout 2025-07-05 --adults 2
 ```
 
 ## Shape the output
@@ -30,9 +75,9 @@ $ airbnb page <path> -o json
 The same flags work on every command:
 
 ```bash
-airbnb page <path> --fields id,url        # keep only these columns
-airbnb page <path> --template '{{.Body}}' # just the body text
-airbnb page <path> -o jsonl | jq .url     # one object per line, into jq
+airbnb search "Lake Tahoe" --fields name,price,rating
+airbnb room 12345 --template '{{.Name}} {{.Price}} {{.Currency}}'
+airbnb suggest paris -o jsonl | jq .name
 ```
 
 `-o` takes `table`, `json`, `jsonl`, `csv`, `tsv`, `url`, or `raw`. Left to
@@ -40,16 +85,18 @@ airbnb page <path> -o jsonl | jq .url     # one object per line, into jq
 command reads well by hand and parses cleanly downstream. See
 [output formats](/reference/output/) for the full contract.
 
-## Follow the links
+## Resolve a reference offline
 
-`links` lists the pages a page links to, and each one is a path you can fetch in
-turn:
+The `ref` commands classify and build Airbnb references with no network call:
 
 ```bash
-airbnb links <path> -n 10                 # the first ten links
-airbnb links <path> -o url                # just the URLs
-airbnb links <path> -o url | head -3 | xargs -n1 airbnb page
+airbnb ref id "https://www.airbnb.com/rooms/Cozy-Cabin/12345"
+airbnb ref url experience 777
 ```
+
+A reference can be a bare numeric id, a `/rooms/`, `/users/show/`, or
+`/experiences/` path, a full Airbnb URL, or a pasted GraphQL global id (the
+base64 of `<Type>:<digits>`).
 
 ## Serve it instead
 
@@ -57,15 +104,11 @@ The same operations are available over HTTP and to agents over MCP:
 
 ```bash
 airbnb serve --addr :7777 &
-curl -s 'localhost:7777/v1/page/<path>'          # NDJSON, one record per line
-airbnb mcp                                # MCP over stdio: page, links
+curl -s 'localhost:7777/v1/suggest/paris'   # NDJSON, one record per line
+airbnb mcp                                   # MCP over stdio
 ```
 
-## What to build next
+## What to read next
 
-This scaffold ships one example type, `page`, wired end to end so the whole
-chain works today. To make it really about airbnb, model the records you
-care about in `airbnb/` and declare their operations in
-`airbnb/domain.go`. Each one you add shows up as a command here, a route
-under `serve`, and a tool under `mcp`, with no extra wiring. The
-[guides](/guides/) cover the common jobs.
+The [guides](/guides/) cover the common jobs, and the
+[CLI reference](/reference/cli/) is the full command tree and flag list.
