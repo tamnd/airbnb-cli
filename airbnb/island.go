@@ -68,6 +68,7 @@ type pdpSection struct {
 type sectionBody struct {
 	Typename        string `json:"__typename"`
 	Title           string `json:"title"`
+	Subtitle        string `json:"subtitle"`
 	HTMLDescription *struct {
 		HTMLText string `json:"htmlText"`
 	} `json:"htmlDescription"`
@@ -86,6 +87,17 @@ type sectionBody struct {
 	HouseRules []struct {
 		Title string `json:"title"`
 	} `json:"houseRules"`
+	// PdpHighlightsSection: icon highlights such as "Self check-in".
+	Highlights []struct {
+		Title    string `json:"title"`
+		Subtitle string `json:"subtitle"`
+	} `json:"highlights"`
+	// SleepingArrangementSection: one entry per room, title "Bedroom 1",
+	// subtitle "1 queen bed".
+	ArrangementDetails []struct {
+		Title    string `json:"title"`
+		Subtitle string `json:"subtitle"`
+	} `json:"arrangementDetails"`
 	IsSuperhost bool   `json:"isSuperhost"`
 	HostName    string `json:"hostName"`
 	HostID      string `json:"hostId"`
@@ -158,6 +170,27 @@ func roomFromSections(sections []pdpSection, metadata json.RawMessage, id string
 			}
 		case "PdpOverviewV2Section", "PdpOverviewSection", "SharingConfigOverviewSection":
 			applyOverview(r, b.DetailItems)
+		case "PdpHighlightsSection":
+			for _, h := range b.Highlights {
+				if h.Title != "" {
+					r.Highlights = append(r.Highlights, squish(h.Title))
+				}
+			}
+		case "SleepingArrangementSection":
+			for _, a := range b.ArrangementDetails {
+				if a.Title == "" {
+					continue
+				}
+				line := squish(a.Title)
+				if a.Subtitle != "" {
+					line += ": " + squish(a.Subtitle)
+				}
+				r.Sleeping = append(r.Sleeping, line)
+			}
+		case "LocationSection", "PdpLocationSection":
+			if r.Location == "" {
+				r.Location = squish(b.Subtitle)
+			}
 		case "AmenitiesSection", "PhotoTourModalAmenitiesSection":
 			for _, g := range b.SeeAllAmenitiesGroups {
 				for _, a := range g.Amenities {
@@ -185,7 +218,7 @@ func roomFromSections(sections []pdpSection, metadata json.RawMessage, id string
 		case "PoliciesSection", "PdpHouseRulesModalSection":
 			for _, hr := range b.HouseRules {
 				if hr.Title != "" {
-					r.HouseRules = append(r.HouseRules, hr.Title)
+					r.HouseRules = append(r.HouseRules, squish(hr.Title))
 				}
 			}
 		}
@@ -193,9 +226,31 @@ func roomFromSections(sections []pdpSection, metadata json.RawMessage, id string
 	if len(r.Images) > 0 {
 		r.Image = r.Images[0]
 	}
+	applyCheckTimes(r)
+
+	// The collection edges carry the room id so a crawl reaching a room expands
+	// to its reviews and its calendar.
+	r.ReviewsRef = id
+	r.CalendarRef = id
 
 	applyEventData(r, metadata)
 	return r
+}
+
+// applyCheckTimes lifts the check-in and checkout windows out of the house rules,
+// where Airbnb states them as lines like "Check-in after 3:00 PM" and "Checkout
+// before 11:00 AM". The wording is stable enough to read without a dedicated
+// field, and a listing that omits the lines just leaves the fields empty.
+func applyCheckTimes(r *Room) {
+	for _, hr := range r.HouseRules {
+		low := strings.ToLower(hr)
+		switch {
+		case r.CheckIn == "" && strings.HasPrefix(low, "check-in"):
+			r.CheckIn = hr
+		case r.CheckOut == "" && (strings.HasPrefix(low, "checkout") || strings.HasPrefix(low, "check-out")):
+			r.CheckOut = hr
+		}
+	}
 }
 
 // applyOverview reads the bedrooms/beds/baths/guests line, whose items read like

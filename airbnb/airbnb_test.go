@@ -98,10 +98,13 @@ const roomPage = `<html><head>
     {"sectionId":"TITLE","section":{"__typename":"PdpTitleSection","title":"Cozy Cabin"}},
     {"sectionId":"DESC","section":{"__typename":"PdpDescriptionSection","htmlDescription":{"htmlText":"<p>A lovely cabin in the woods.</p>"}}},
     {"sectionId":"OVERVIEW","section":{"__typename":"PdpOverviewV2Section","detailItems":[{"title":"4 guests"},{"title":"2 bedrooms"},{"title":"3 beds"},{"title":"1.5 baths"}]}},
+    {"sectionId":"HIGHLIGHTS","section":{"__typename":"PdpHighlightsSection","highlights":[{"title":"Self check-in","subtitle":"Check yourself in with the lockbox."},{"title":"Great location"}]}},
+    {"sectionId":"SLEEPING","section":{"__typename":"SleepingArrangementSection","arrangementDetails":[{"title":"Bedroom 1","subtitle":"1 queen bed"},{"title":"Bedroom 2","subtitle":"2 single beds"}]}},
+    {"sectionId":"LOCATION","section":{"__typename":"LocationSection","subtitle":"Tahoe Vista, California, United States"}},
     {"sectionId":"AMENITIES","section":{"__typename":"AmenitiesSection","seeAllAmenitiesGroups":[{"amenities":[{"title":"Wifi","available":true},{"title":"Kitchen","available":true}]}]}},
     {"sectionId":"PHOTOS","section":{"__typename":"PhotoTourModalSection","mediaItems":[{"baseUrl":"https://img/1.jpg"},{"baseUrl":"https://img/2.jpg"}]}},
     {"sectionId":"HOST","section":{"__typename":"HostProfileSection","hostName":"Jordan","hostId":"555","isSuperhost":true}},
-    {"sectionId":"POLICIES","section":{"__typename":"PoliciesSection","houseRules":[{"title":"No smoking"},{"title":"No parties"}]}}
+    {"sectionId":"POLICIES","section":{"__typename":"PoliciesSection","houseRules":[{"title":"Check-in after 4:00 PM"},{"title":"Checkout before 11:00 AM"},{"title":"No smoking"},{"title":"No parties"}]}}
   ],
   "metadata":{"loggingContext":{"eventDataLogging":{"listingLat":39.1,"listingLng":-120.1,"personCapacity":4,"accuracyRating":4.9,"checkinRating":5.0,"cleanlinessRating":4.8,"communicationRating":5.0,"locationRating":4.7,"valueRating":4.6,"guestSatisfactionOverall":4.85,"visibleReviewCount":120,"roomType":"Entire home","propertyType":"Cabin","isSuperhost":true,"hostId":"555"}}}
 }}}}}]]}
@@ -130,11 +133,27 @@ func TestGetRoom(t *testing.T) {
 	if len(r.Images) != 2 || r.Image != "https://img/1.jpg" {
 		t.Errorf("images = %v (first %q)", r.Images, r.Image)
 	}
+	if len(r.Highlights) != 2 || r.Highlights[0] != "Self check-in" {
+		t.Errorf("highlights = %v", r.Highlights)
+	}
+	if len(r.Sleeping) != 2 || r.Sleeping[0] != "Bedroom 1: 1 queen bed" {
+		t.Errorf("sleeping = %v", r.Sleeping)
+	}
+	if r.Location != "Tahoe Vista, California, United States" {
+		t.Errorf("location = %q", r.Location)
+	}
 	if r.HostName != "Jordan" || r.HostID != "555" || !r.Superhost {
 		t.Errorf("host = %q / %q / %v", r.HostName, r.HostID, r.Superhost)
 	}
-	if len(r.HouseRules) != 2 || r.HouseRules[0] != "No smoking" {
+	if len(r.HouseRules) != 4 || r.HouseRules[2] != "No smoking" {
 		t.Errorf("house rules = %v", r.HouseRules)
+	}
+	if r.CheckIn != "Check-in after 4:00 PM" || r.CheckOut != "Checkout before 11:00 AM" {
+		t.Errorf("check times = %q / %q", r.CheckIn, r.CheckOut)
+	}
+	// A room carries the edges to its own reviews and calendar so a crawl expands.
+	if r.ReviewsRef != "999" || r.CalendarRef != "999" {
+		t.Errorf("collection edges reviews/calendar = %q / %q", r.ReviewsRef, r.CalendarRef)
 	}
 	if r.Rating != 4.85 || r.Reviews != 120 {
 		t.Errorf("rating/reviews = %v / %d", r.Rating, r.Reviews)
@@ -173,8 +192,8 @@ func TestGetRoomNoIslandIsBlocked(t *testing.T) {
 
 const searchData = `{"presentation":{"staysSearch":{"results":{
   "searchResults":[
-    {"__typename":"StaySearchResult","listing":{"id":"111","name":"Cozy Cabin","title":"Entire cabin in Tahoe","coordinate":{"latitude":39.1,"longitude":-120.1},"avgRatingA11yLabel":"4.95 out of 5 average rating, 120 reviews","roomTypeCategory":"entire_home","contextualPictures":[{"picture":"https://a/1.jpg"}],"formattedBadges":[{"text":"Guest favorite"}],"hostId":"555"},
-     "pricingQuote":{"structuredStayDisplayPrice":{"primaryLine":{"price":"$120 night"},"secondaryLine":{"price":"$640 total"}}}},
+    {"__typename":"StaySearchResult","listing":{"id":"111","name":"Cozy Cabin","title":"Entire cabin in Tahoe","coordinate":{"latitude":39.1,"longitude":-120.1},"avgRatingA11yLabel":"4.95 out of 5 average rating, 120 reviews","roomTypeCategory":"entire_home","contextualPictures":[{"picture":"https://a/1.jpg"},{"picture":"https://a/2.jpg"}],"formattedBadges":[{"text":"Guest favorite"}],"hostId":"555"},
+     "pricingQuote":{"structuredStayDisplayPrice":{"primaryLine":{"price":"$120 night","originalPrice":"$150"},"secondaryLine":{"price":"$640 total"}}}},
     {"__typename":"StaySearchResult","listing":{"id":""}}
   ],
   "paginationInfo":{"nextPageCursor":""}
@@ -201,11 +220,11 @@ func TestSearch(t *testing.T) {
 	if l.Rating != 4.95 || l.Reviews != 120 {
 		t.Errorf("rating/reviews from label = %v / %d", l.Rating, l.Reviews)
 	}
-	if l.Price != 120 || l.Total != 640 {
-		t.Errorf("price/total = %v / %v", l.Price, l.Total)
+	if l.Price != 120 || l.Total != 640 || l.Original != 150 {
+		t.Errorf("price/total/original = %v / %v / %v", l.Price, l.Total, l.Original)
 	}
-	if l.Image != "https://a/1.jpg" {
-		t.Errorf("image = %q", l.Image)
+	if len(l.Images) != 2 || l.Image != "https://a/1.jpg" {
+		t.Errorf("images = %v (first %q)", l.Images, l.Image)
 	}
 	if len(l.Badges) != 1 || l.Badges[0] != "Guest favorite" {
 		t.Errorf("badges = %v", l.Badges)
@@ -220,7 +239,7 @@ func TestSearch(t *testing.T) {
 }
 
 const reviewsData = `{"presentation":{"stayProductDetailPage":{"reviews":{"reviews":[
-  {"id":"r1","comments":"Great place","language":"en","localizedDate":"April 2025","rating":5,"reviewer":{"firstName":"Alice","location":"Seattle, WA"},"response":"Thanks!"}
+  {"id":"r1","comments":"Great place","language":"en","localizedDate":"April 2025","localizedReviewedText":"Stayed a few nights","rating":5,"reviewer":{"id":"888","firstName":"Alice","location":"Seattle, WA","pictureUrl":"https://r/a.jpg"},"response":"Thanks!"}
 ]}}}}`
 
 func TestReviews(t *testing.T) {
@@ -244,16 +263,22 @@ func TestReviews(t *testing.T) {
 	if rv.Text != "Great place" || rv.Response != "Thanks!" {
 		t.Errorf("text/response = %q / %q", rv.Text, rv.Response)
 	}
-	// Every review links back to its listing for BFS.
+	if rv.Trip != "Stayed a few nights" || rv.AuthorImage != "https://r/a.jpg" {
+		t.Errorf("trip/author image = %q / %q", rv.Trip, rv.AuthorImage)
+	}
+	// Every review links back to its listing and onward to the reviewer's profile.
 	if rv.Room != "999" {
 		t.Errorf("room edge = %q", rv.Room)
+	}
+	if rv.AuthorID != "888" {
+		t.Errorf("reviewer edge = %q", rv.AuthorID)
 	}
 }
 
 const calendarData = `{"merlin":{"pdpAvailabilityCalendar":{"calendarMonths":[
   {"days":[
-    {"calendarDate":"2025-07-01","available":true,"minNights":2,"maxNights":30,"price":{"localPriceFormatted":"$150","localCurrency":"USD"}},
-    {"calendarDate":"2025-07-02","available":false}
+    {"calendarDate":"2025-07-01","available":true,"bookable":true,"minNights":2,"maxNights":30,"price":{"localPriceFormatted":"$150","localCurrency":"USD"}},
+    {"calendarDate":"2025-07-02","available":false,"bookable":false}
   ]}
 ]}}}`
 
@@ -272,7 +297,7 @@ func TestCalendar(t *testing.T) {
 	if d.ID != "999:2025-07-01" || d.Date != "2025-07-01" {
 		t.Errorf("day id/date = %q / %q", d.ID, d.Date)
 	}
-	if !d.Available || d.MinNights != 2 || d.MaxNights != 30 {
+	if !d.Available || !d.Bookable || d.MinNights != 2 || d.MaxNights != 30 {
 		t.Errorf("availability = %+v", d)
 	}
 	if d.Price != 150 || d.Currency != "USD" {
@@ -287,7 +312,7 @@ func TestCalendar(t *testing.T) {
 }
 
 const hostData = `{"presentation":{"userProfileContainer":{"userProfile":{
-  "id":"555","smartName":"Jordan","isSuperhost":true,"createdAt":"2015","about":"I love hosting.","languages":["English","Spanish"],"listingsCount":3,"reviewsCount":210,"responseRate":"100%","identityVerified":true,"pictureUrl":"https://h/p.jpg"
+  "id":"555","smartName":"Jordan","isSuperhost":true,"createdAt":"2015","about":"I love hosting.","languages":["English","Spanish"],"listingsCount":3,"reviewsCount":210,"responseRate":"100%","responseTime":"within an hour","identityVerified":true,"pictureUrl":"https://h/p.jpg"
 }}}}`
 
 func TestGetHost(t *testing.T) {
@@ -306,6 +331,13 @@ func TestGetHost(t *testing.T) {
 	}
 	if len(h.Languages) != 2 || h.Listings != 3 || h.Reviews != 210 || !h.Verified {
 		t.Errorf("languages/listings/reviews/verified = %v / %d / %d / %v", h.Languages, h.Listings, h.Reviews, h.Verified)
+	}
+	if h.ResponseTime != "within an hour" {
+		t.Errorf("response time = %q", h.ResponseTime)
+	}
+	// A host carries the edge to the host's own listings so a crawl expands.
+	if h.ListingsRef != "555" {
+		t.Errorf("listings edge = %q", h.ListingsRef)
 	}
 	if h.URL != BaseURL+"/users/show/555" {
 		t.Errorf("url = %q", h.URL)
@@ -388,6 +420,10 @@ func TestSuggest(t *testing.T) {
 	}
 	if got[0].Lat != 48.8 || got[0].Lng != 2.3 {
 		t.Errorf("coords = %v, %v", got[0].Lat, got[0].Lng)
+	}
+	// A suggestion links into a stay search for the place, the crawl's entry edge.
+	if got[0].SearchRef != "Paris, France" {
+		t.Errorf("search edge = %q", got[0].SearchRef)
 	}
 	if got[1].Name != "Paris, TX" {
 		t.Errorf("suggestion 1 = %+v", got[1])

@@ -192,10 +192,15 @@ func TestHostWiring(t *testing.T) {
 	}
 }
 
-// TestHostLinks proves the graph edges a host walks for BFS: a search listing
-// links to its full room and its host, a room links to its host, a review and a
-// calendar day link back to their room. These are the edges `ant export --follow`
-// traverses to crawl the site.
+// TestHostLinks proves the graph edges a host walks for BFS, the edges `ant
+// export --follow` traverses to reconstruct the public site from one seed:
+//
+//	place --> search; search listing --> room, host; room --> host, reviews,
+//	calendar; review --> room, the reviewer's profile; day --> room; host -->
+//	the host's listings.
+//
+// Following all of them leaves no node without an outward edge, so a crawl
+// started anywhere reaches the rest of the reachable graph.
 func TestHostLinks(t *testing.T) {
 	h, err := kit.Open()
 	if err != nil {
@@ -219,12 +224,28 @@ func TestHostLinks(t *testing.T) {
 		t.Errorf("missing edge %q in %v", want, got)
 	}
 
+	// The entry edge: a suggestion fans out into a stay search for the place.
+	has(t, links(&Place{Name: "Lake Tahoe", SearchRef: "Lake Tahoe"}), "airbnb://search/Lake%20Tahoe")
+
+	// A search card walks straight through to its full room and its host.
 	l := &Listing{ID: "111", Room: "111", Host: "555"}
 	ll := links(l)
 	has(t, ll, "airbnb://room/111")
 	has(t, ll, "airbnb://host/555")
 
-	has(t, links(&Room{ID: "111", HostID: "555"}), "airbnb://host/555")
-	has(t, links(&Review{ID: "r1", Room: "111"}), "airbnb://room/111")
+	// A room reaches its host, its reviews, and its calendar.
+	rm := links(&Room{ID: "111", HostID: "555", ReviewsRef: "111", CalendarRef: "111"})
+	has(t, rm, "airbnb://host/555")
+	has(t, rm, "airbnb://reviews/111")
+	has(t, rm, "airbnb://calendar/111")
+
+	// A review reaches its listing and the reviewer's profile.
+	rv := links(&Review{ID: "r1", Room: "111", AuthorID: "888"})
+	has(t, rv, "airbnb://room/111")
+	has(t, rv, "airbnb://host/888")
+
 	has(t, links(&Day{ID: "111:2025-07-01", Room: "111"}), "airbnb://room/111")
+
+	// A host reaches the host's own listings, so a crawl never dead-ends there.
+	has(t, links(&Host{ID: "555", ListingsRef: "555"}), "airbnb://listings/555")
 }

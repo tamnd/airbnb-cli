@@ -45,7 +45,8 @@ type staySearchResult struct {
 	PricingQuote struct {
 		StructuredStayDisplayPrice struct {
 			PrimaryLine struct {
-				Price string `json:"price"`
+				Price         string `json:"price"`
+				OriginalPrice string `json:"originalPrice"` // strikethrough, when the card shows a discount
 			} `json:"primaryLine"`
 			SecondaryLine struct {
 				Price string `json:"price"`
@@ -118,14 +119,23 @@ func (sr staySearchResult) toListing() *Listing {
 		Room:     id,
 	}
 	l.Rating, l.Reviews = ratingFromLabel(sr.Listing.AvgRatingLabel)
-	if p := sr.PricingQuote.StructuredStayDisplayPrice.PrimaryLine.Price; p != "" {
-		l.Price = priceFromDisplay(p)
+	price := sr.PricingQuote.StructuredStayDisplayPrice.PrimaryLine
+	if price.Price != "" {
+		l.Price = priceFromDisplay(price.Price)
+	}
+	if price.OriginalPrice != "" {
+		l.Original = priceFromDisplay(price.OriginalPrice)
 	}
 	if t := sr.PricingQuote.StructuredStayDisplayPrice.SecondaryLine.Price; t != "" {
 		l.Total = priceFromDisplay(t)
 	}
-	if len(sr.Listing.ContextualPictures) > 0 {
-		l.Image = sr.Listing.ContextualPictures[0].Picture
+	for _, p := range sr.Listing.ContextualPictures {
+		if p.Picture != "" {
+			l.Images = append(l.Images, p.Picture)
+		}
+	}
+	if len(l.Images) > 0 {
+		l.Image = l.Images[0]
 	}
 	for _, b := range sr.Listing.FormattedBadges {
 		if b.Text != "" {
