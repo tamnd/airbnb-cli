@@ -69,7 +69,8 @@ func (d apiDay) toDay(roomID, fallbackCurrency string) *Day {
 	day := &Day{
 		ID:        roomID + ":" + d.CalendarDate,
 		Date:      d.CalendarDate,
-		Available: d.Available || d.Bookable,
+		Available: d.Available,
+		Bookable:  d.Bookable,
 		MinNights: d.MinNights,
 		MaxNights: d.MaxNights,
 		Room:      roomID,

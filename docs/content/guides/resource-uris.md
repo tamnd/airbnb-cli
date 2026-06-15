@@ -71,22 +71,33 @@ ant ls airbnb://listings/555           # the host's listings
 
 Every record carries explicit edges to the records it points at, so a host can
 breadth-first crawl the site and write it to disk without scraping URLs out of
-free text. The edges are:
+free text. A resolver edge names a bare field and points at one record; a
+collection edge carries the parent id under a `<name>_ref` field and points at a
+list authority. The edges are:
 
-| From       | Field     | Edge to                  |
-| ---------- | --------- | ------------------------ |
-| `Listing`  | `room`    | `airbnb://room/<id>`     |
-| `Listing`  | `host`    | `airbnb://host/<id>`     |
-| `Room`     | `host_id` | `airbnb://host/<id>`     |
-| `Review`   | `room`    | `airbnb://room/<id>`     |
-| `Day`      | `room`    | `airbnb://room/<id>`     |
+| From      | Field          | Edge to                  |
+| --------- | -------------- | ------------------------ |
+| `Place`   | `search_ref`   | `airbnb://search/<name>` |
+| `Listing` | `room`         | `airbnb://room/<id>`     |
+| `Listing` | `host`         | `airbnb://host/<id>`     |
+| `Room`    | `host_id`      | `airbnb://host/<id>`     |
+| `Room`    | `reviews_ref`  | `airbnb://reviews/<id>`  |
+| `Room`    | `calendar_ref` | `airbnb://calendar/<id>` |
+| `Review`  | `room`         | `airbnb://room/<id>`     |
+| `Review`  | `author_id`    | `airbnb://host/<id>`     |
+| `Day`     | `room`         | `airbnb://room/<id>`     |
+| `Host`    | `listings_ref` | `airbnb://listings/<id>` |
 
-A search listing links straight through to its full room and to its host; a room
-links to its host; a review and a calendar day link back to their room. Starting
-from any node, `--follow` walks these edges:
+The edges close into one connected graph. A suggestion fans out into a stay
+search for the place; a search card walks straight through to its full room and
+its host; a room reaches its host, its reviews, and its calendar; a review
+reaches its listing and the reviewer's own profile; a host reaches the host's
+other listings. No node is left without an outward edge, so a crawl started
+anywhere reaches the rest of the reachable site. Starting from any node,
+`--follow` walks these edges:
 
 ```bash
-ant export airbnb://search/Lake%20Tahoe --follow 1 --to ./data  # a search, each listing, and its host
+ant export airbnb://search/Lake%20Tahoe --follow 2 --to ./data  # each listing's room, then its host, reviews, and calendar
 ant get airbnb://room/12345
 ant cat airbnb://room/12345        # the description body
 ant url airbnb://room/12345
@@ -94,7 +105,8 @@ ant url airbnb://room/12345
 
 Each record is written under its minted URI with its edges intact, so the saved
 set reconstructs the slice of the site that was reached: the search results, the
-full listing behind each card, and the hosts behind those listings.
+full listing behind each card, its reviews and calendar, the hosts behind those
+listings, and the profile of each reviewer.
 
 These edge fields stay out of the table and CSV views (they would be noise in a
 terminal) but are always present in the JSON and JSONL a host reads.

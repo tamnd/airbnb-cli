@@ -27,6 +27,7 @@ type apiUser struct {
 	ListingsCount    int      `json:"listingsCount"`
 	ReviewsCount     int      `json:"reviewsCount"`
 	ResponseRate     string   `json:"responseRate"`
+	ResponseTime     string   `json:"responseTime"`
 	IdentityVerified bool     `json:"identityVerified"`
 	PictureURL       string   `json:"pictureUrl"`
 }
@@ -58,12 +59,14 @@ func (c *Client) GetHost(ctx context.Context, ref string) (*Host, error) {
 		Since:        u.CreatedAt,
 		About:        squish(u.About),
 		ResponseRate: u.ResponseRate,
+		ResponseTime: squish(u.ResponseTime),
 		Languages:    u.Languages,
 		Listings:     u.ListingsCount,
 		Reviews:      u.ReviewsCount,
 		Verified:     u.IdentityVerified,
 		Image:        u.PictureURL,
 		URL:          BaseURL + "/users/show/" + uid,
+		ListingsRef:  uid,
 	}, nil
 }
 

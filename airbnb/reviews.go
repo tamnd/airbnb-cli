@@ -20,14 +20,17 @@ type reviewsResp struct {
 }
 
 type apiReview struct {
-	ID            string `json:"id"`
-	Comments      string `json:"comments"`
-	Language      string `json:"language"`
-	LocalizedDate string `json:"localizedDate"`
-	Rating        int    `json:"rating"`
-	Reviewer      struct {
-		FirstName string `json:"firstName"`
-		Location  string `json:"location"`
+	ID                    string `json:"id"`
+	Comments              string `json:"comments"`
+	Language              string `json:"language"`
+	LocalizedDate         string `json:"localizedDate"`
+	LocalizedReviewedText string `json:"localizedReviewedText"` // the stay descriptor, e.g. "Stayed a few nights"
+	Rating                int    `json:"rating"`
+	Reviewer              struct {
+		ID         string `json:"id"`
+		FirstName  string `json:"firstName"`
+		Location   string `json:"location"`
+		PictureURL string `json:"pictureUrl"`
 	} `json:"reviewer"`
 	Response string `json:"response"`
 }
@@ -80,14 +83,17 @@ func (c *Client) Reviews(ctx context.Context, ref string, limit int) ([]*Review,
 
 func (rv apiReview) toReview(roomID string) *Review {
 	return &Review{
-		ID:       rv.ID,
-		Author:   squish(rv.Reviewer.FirstName),
-		Location: squish(rv.Reviewer.Location),
-		Date:     rv.LocalizedDate,
-		Rating:   rv.Rating,
-		Text:     squish(rv.Comments),
-		Response: squish(rv.Response),
-		Language: rv.Language,
-		Room:     roomID,
+		ID:          rv.ID,
+		Author:      squish(rv.Reviewer.FirstName),
+		AuthorID:    normalizeHostID(rv.Reviewer.ID),
+		AuthorImage: rv.Reviewer.PictureURL,
+		Location:    squish(rv.Reviewer.Location),
+		Date:        rv.LocalizedDate,
+		Trip:        squish(rv.LocalizedReviewedText),
+		Rating:      rv.Rating,
+		Text:        squish(rv.Comments),
+		Response:    squish(rv.Response),
+		Language:    rv.Language,
+		Room:        roomID,
 	}
 }
