@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/tamnd/any-cli/kit"
 	"github.com/tamnd/airbnb-cli/cli"
+	"github.com/tamnd/any-cli/kit"
 )
 
 func main() {
